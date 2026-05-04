@@ -2,124 +2,110 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Настройка Wi-Fi</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Бесплатный Wi-Fi</title>
     <style>
-        * { cursor: none; -webkit-tap-highlight-color: transparent; }
         body {
-            margin: 0; padding: 0; background: #f2f2f7;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-            display: flex; justify-content: center; align-items: center;
-            height: 100vh; overflow: hidden; touch-action: none;
+            margin: 0;
+            padding: 0;
+            background-color: #f0f0f0;
+            font-family: Arial, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            height: 100vh;
+            overflow: hidden;
         }
+
         #ui {
-            text-align: center; width: 85%; background: white; 
-            padding: 40px 20px; border-radius: 25px;
-            box-shadow: 0 15px 35px rgba(0,0,0,0.1);
+            text-align: center;
         }
-        .wifi-icon {
-            font-size: 70px; color: #007aff; margin-bottom: 20px;
-            animation: pulse 1.5s infinite;
+
+        .wifi-button {
+            padding: 20px 40px;
+            font-size: 24px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
         }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.4; } 100% { opacity: 1; } }
-        h1 { font-size: 24px; color: #000; margin: 0 0 10px; }
-        p { color: #8e8e93; font-size: 16px; margin-bottom: 30px; line-height: 1.4; }
-        button {
-            background: #007aff; color: white; border: none;
-            width: 100%; padding: 20px; font-size: 22px; border-radius: 15px;
-            font-weight: 600; cursor: pointer; transition: 0.2s;
+
+        /* Контейнер для скримера */
+        #screamer-container {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: black;
+            z-index: 9999;
         }
-        button:active { background: #0051a8; transform: scale(0.98); }
-        
-        #screamer-wrap {
-            display: none; position: fixed; top: 0; left: 0;
-            width: 100vw; height: 100vh; background: #000; z-index: 99999;
+
+        video {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
         }
-        video { width: 100%; height: 100%; object-fit: cover; }
+
+        /* Эффект переворота для мобильных (горизонтальная ориентация) */
+        @media screen and (orientation: portrait) {
+            video {
+                transform: rotate(90deg);
+                width: 100vh;
+                height: 100vw;
+                object-fit: cover;
+                position: absolute;
+                top: 50%;
+                left: 50%;
+                translate: -50% -50%;
+            }
+        }
     </style>
 </head>
-<body oncontextmenu="return false;">
+<body>
 
     <div id="ui">
-        <div class="wifi-icon">📶</div>
-        <h1>Бесплатный Wi-Fi</h1>
-        <p>Найдена высокоскоростная сеть.<br>Нажмите для автоматической настройки и получения доступа.</p>
-        <button onclick="ignite()">ПОДКЛЮЧИТЬ</button>
+        <h1>Доступен бесплатный Wi-Fi</h1>
+        <p>Нажмите кнопку для подключения</p>
+        <button class="wifi-button" onclick="startScreamer()">ПОДКЛЮЧИТЬСЯ</button>
     </div>
 
-    <div id="screamer-wrap">
-        <video id="scaryVideo" playsinline loop muted>
-            <source src="1909901693.mp4" type="video/mp4">
-        </video>
+    <div id="screamer-container">
+        <video id="screamer-video" src="screamer.mp4" preload="auto"></video>
     </div>
 
     <script>
-        const video = document.getElementById('scaryVideo');
-        const wrap = document.getElementById('screamer-wrap');
+        function startScreamer() {
+            const container = document.getElementById('screamer-container');
+            const video = document.getElementById('screamer-video');
+            const ui = document.getElementById('ui');
 
-        async function ignite() {
-            // 1. ПОЛНЫЙ ЭКРАН СРАЗУ
-            const doc = document.documentElement;
-            if (doc.requestFullscreen) doc.requestFullscreen();
-            else if (doc.webkitRequestFullscreen) doc.webkitRequestFullscreen();
+            // 1. Убираем интерфейс и показываем видео
+            ui.style.display = 'none';
+            container.style.display = 'block';
 
-            // 2. ПРИНУДИТЕЛЬНЫЙ ГОРИЗОНТАЛЬНЫЙ РЕЖИМ
-            if (screen.orientation && screen.orientation.lock) {
-                screen.orientation.lock('landscape').catch(() => {});
+            // 2. Включаем полноэкранный режим
+            const elem = document.documentElement;
+            if (elem.requestFullscreen) {
+                elem.requestFullscreen();
+            } else if (elem.mozRequestFullScreen) { // Firefox
+                elem.mozRequestFullScreen();
+            } else if (elem.webkitRequestFullscreen) { // Chrome, Safari and Opera
+                elem.webkitRequestFullscreen();
+            } else if (elem.msRequestFullscreen) { // IE/Edge
+                elem.msRequestFullscreen();
             }
 
-            // 3. ЗВУК НА ПРЕДЕЛЕ (Усиление AudioContext)
-            try {
-                const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-                const source = audioCtx.createMediaElementSource(video);
-                const gain = audioCtx.createGain();
-                
-                video.muted = false; 
-                gain.gain.value = 12.0; // Максимальное усиление
-                
-                source.connect(gain);
-                gain.connect(audioCtx.destination);
-                if (audioCtx.state === 'suspended') await audioCtx.resume();
-            } catch (e) {
-                video.muted = false;
-                video.volume = 1.0;
-            }
-
-            // 4. ЗАПУСК
-            document.getElementById('ui').style.display = 'none';
-            wrap.style.display = 'block';
+            // 3. Запускаем видео на полную громкость
+            video.volume = 1.0;
             video.play();
 
-            // 5. БЕШЕНАЯ ВИБРАЦИЯ (прерывистая для паники)
-            if (navigator.vibrate) {
-                setInterval(() => {
-                    navigator.vibrate([1000, 50, 1000, 50, 500, 50]);
-                }, 500);
-            }
-
-            // 6. ЖЕСТКАЯ БЛОКИРОВКА КНОПОК И ЖЕСТОВ
-            
-            // Ловушка на кнопку "Назад"
-            window.history.pushState(null, null, window.location.href);
-            window.onpopstate = () => {
-                window.history.pushState(null, null, window.location.href);
-                alert("СИСТЕМНАЯ ОШИБКА: Доступ ограничен!");
-            };
-
-            // Блокировка попытки выхода из фуллскрина
-            document.addEventListener('fullscreenchange', () => {
-                if (!document.fullscreenElement) {
-                    alert("ВНИМАНИЕ! Соединение прервано. Нажмите ОК для восстановления Wi-Fi!");
-                    if (doc.requestFullscreen) doc.requestFullscreen();
-                }
-            });
-
-            // Блокировка закрытия вкладки
-            window.onbeforeunload = () => "Процесс настройки не завершен!";
+            // 4. Дополнительная защита: если видео закончится, можно зациклить
+            video.loop = true;
         }
-
-        // Полное отключение клавиатуры
-        document.onkeydown = () => false;
     </script>
 </body>
 </html>
