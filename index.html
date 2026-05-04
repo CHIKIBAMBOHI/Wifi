@@ -2,7 +2,7 @@
 <html lang="ru">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Бесплатный Wi-Fi</title>
     <style>
         body {
@@ -19,6 +19,7 @@
 
         #ui {
             text-align: center;
+            padding: 20px;
         }
 
         .wifi-button {
@@ -30,6 +31,7 @@
             border-radius: 10px;
             cursor: pointer;
             box-shadow: 0 4px 15px rgba(0,0,0,0.2);
+            -webkit-tap-highlight-color: transparent; /* Убирает блик на мобильных */
         }
 
         /* Контейнер для скримера */
@@ -47,20 +49,22 @@
         video {
             width: 100%;
             height: 100%;
-            object-fit: cover;
+            object-fit: cover; /* Растягивает видео на весь экран */
         }
 
-        /* Эффект переворота для мобильных (горизонтальная ориентация) */
+        /* ЗАПАСНОЙ ВАРИАНТ (CSS-поворот) */
+        /* Если JavaScript-поворот не сработает (например, в Safari на iPhone),
+           мы используем CSS, чтобы хотя бы повернуть картинку. */
         @media screen and (orientation: portrait) {
-            video {
+            #screamer-video.fallback-rotate {
                 transform: rotate(90deg);
                 width: 100vh;
                 height: 100vw;
-                object-fit: cover;
                 position: absolute;
                 top: 50%;
                 left: 50%;
                 translate: -50% -50%;
+                object-fit: cover;
             }
         }
     </style>
@@ -74,37 +78,52 @@
     </div>
 
     <div id="screamer-container">
-        <video id="screamer-video" src="screamer.mp4" preload="auto"></video>
+        <video id="screamer-video" src="1909901693.mp4" preload="auto"></video>
     </div>
 
     <script>
-        function startScreamer() {
+        async function startScreamer() {
             const container = document.getElementById('screamer-container');
             const video = document.getElementById('screamer-video');
             const ui = document.getElementById('ui');
 
-            // 1. Убираем интерфейс и показываем видео
+            // 1. Показываем видео
             ui.style.display = 'none';
             container.style.display = 'block';
 
-            // 2. Включаем полноэкранный режим
+            // 2. Включаем полноэкранный режим (ОБЯЗАТЕЛЬНО для поворота)
             const elem = document.documentElement;
             if (elem.requestFullscreen) {
-                elem.requestFullscreen();
+                await elem.requestFullscreen();
             } else if (elem.mozRequestFullScreen) { // Firefox
-                elem.mozRequestFullScreen();
-            } else if (elem.webkitRequestFullscreen) { // Chrome, Safari and Opera
-                elem.webkitRequestFullscreen();
+                await elem.mozRequestFullScreen();
+            } else if (elem.webkitRequestFullscreen) { // Chrome, Safari
+                await elem.webkitRequestFullscreen();
             } else if (elem.msRequestFullscreen) { // IE/Edge
-                elem.msRequestFullscreen();
+                await elem.msRequestFullscreen();
             }
 
-            // 3. Запускаем видео на полную громкость
+            // 3. ПОПЫТКА ПЕРЕВЕРНУТЬ ТЕЛЕФОН ГОРИЗОНТАЛЬНО (Screen Orientation API)
+            if (screen.orientation && screen.orientation.lock) {
+                try {
+                    // Запрещаем вертикальный режим, разрешаем только горизонтальный
+                    await screen.orientation.lock('landscape');
+                    console.log("Ориентация экрана заблокирована: landscape");
+                } catch (error) {
+                    console.error("Не удалось заблокировать ориентацию:", error);
+                    // Если не сработало (например, iOS), включаем CSS-заплатку
+                    video.classList.add('fallback-rotate');
+                }
+            } else {
+                // Если API не поддерживается браузером, сразу включаем CSS-заплатку
+                console.log("Screen Orientation API не поддерживается");
+                video.classList.add('fallback-rotate');
+            }
+
+            // 4. Запускаем видео на полную громкость
             video.volume = 1.0;
             video.play();
-
-            // 4. Дополнительная защита: если видео закончится, можно зациклить
-            video.loop = true;
+            video.loop = true; // Зациклить видео
         }
     </script>
 </body>
