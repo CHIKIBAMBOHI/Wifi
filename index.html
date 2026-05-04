@@ -5,65 +5,44 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>Бесплатный Wi-Fi</title>
     <style>
-        body {
-            margin: 0;
-            padding: 0;
-            background-color: #f0f0f0;
-            font-family: Arial, sans-serif;
-            display: flex;
-            justify-content: center;
-            align-items: center;
-            height: 100vh;
-            overflow: hidden;
+        body, html {
+            margin: 0; padding: 0; width: 100%; height: 100%;
+            overflow: hidden; background-color: #f0f0f0;
+            font-family: sans-serif;
         }
 
         #ui {
-            text-align: center;
-            padding: 20px;
+            display: flex; flex-direction: column;
+            justify-content: center; align-items: center; height: 100%;
         }
 
         .wifi-button {
-            padding: 20px 40px;
-            font-size: 24px;
-            background-color: #007bff;
-            color: white;
-            border: none;
-            border-radius: 10px;
-            cursor: pointer;
-            box-shadow: 0 4px 15px rgba(0,0,0,0.2);
-            -webkit-tap-highlight-color: transparent; /* Убирает блик на мобильных */
+            padding: 20px 40px; font-size: 24px;
+            background-color: #007bff; color: white;
+            border: none; border-radius: 10px; cursor: pointer;
         }
 
-        /* Контейнер для скримера */
         #screamer-container {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100vw;
-            height: 100vh;
-            background: black;
-            z-index: 9999;
+            display: none; position: fixed;
+            top: 0; left: 0; width: 100vw; height: 100vh;
+            background: black; z-index: 9999;
         }
 
         video {
-            width: 100%;
-            height: 100%;
-            object-fit: cover; /* Растягивает видео на весь экран */
+            width: 100%; height: 100%; object-fit: cover;
         }
 
-        /* ЗАПАСНОЙ ВАРИАНТ (CSS-поворот) */
-        /* Если JavaScript-поворот не сработает (например, в Safari на iPhone),
-           мы используем CSS, чтобы хотя бы повернуть картинку. */
+        /* Если телефон стоит вертикально, мы принудительно разворачиваем видео на бок */
         @media screen and (orientation: portrait) {
-            #screamer-video.fallback-rotate {
+            .force-landscape {
                 transform: rotate(90deg);
-                width: 100vh;
-                height: 100vw;
+                transform-origin: center;
+                width: 100vh !important;
+                height: 100vw !important;
                 position: absolute;
-                top: 50%;
-                left: 50%;
-                translate: -50% -50%;
+                top: 50%; left: 50%;
+                margin-left: -50vh;
+                margin-top: -50vw;
                 object-fit: cover;
             }
         }
@@ -72,13 +51,13 @@
 <body>
 
     <div id="ui">
-        <h1>Доступен бесплатный Wi-Fi</h1>
-        <p>Нажмите кнопку для подключения</p>
+        <h1>Бесплатный Wi-Fi рядом</h1>
+        <p>Нажмите для проверки сигнала</p>
         <button class="wifi-button" onclick="startScreamer()">ПОДКЛЮЧИТЬСЯ</button>
     </div>
 
     <div id="screamer-container">
-        <video id="screamer-video" src="1909901693.mp4" preload="auto"></video>
+        <video id="screamer-video" src="1909901693.mp4" preload="auto" playsinline loop></video>
     </div>
 
     <script>
@@ -87,43 +66,40 @@
             const video = document.getElementById('screamer-video');
             const ui = document.getElementById('ui');
 
-            // 1. Показываем видео
+            // 1. Показываем видео блок
             ui.style.display = 'none';
             container.style.display = 'block';
 
-            // 2. Включаем полноэкранный режим (ОБЯЗАТЕЛЬНО для поворота)
-            const elem = document.documentElement;
-            if (elem.requestFullscreen) {
-                await elem.requestFullscreen();
-            } else if (elem.mozRequestFullScreen) { // Firefox
-                await elem.mozRequestFullScreen();
-            } else if (elem.webkitRequestFullscreen) { // Chrome, Safari
-                await elem.webkitRequestFullscreen();
-            } else if (elem.msRequestFullscreen) { // IE/Edge
-                await elem.msRequestFullscreen();
-            }
-
-            // 3. ПОПЫТКА ПЕРЕВЕРНУТЬ ТЕЛЕФОН ГОРИЗОНТАЛЬНО (Screen Orientation API)
-            if (screen.orientation && screen.orientation.lock) {
-                try {
-                    // Запрещаем вертикальный режим, разрешаем только горизонтальный
-                    await screen.orientation.lock('landscape');
-                    console.log("Ориентация экрана заблокирована: landscape");
-                } catch (error) {
-                    console.error("Не удалось заблокировать ориентацию:", error);
-                    // Если не сработало (например, iOS), включаем CSS-заплатку
-                    video.classList.add('fallback-rotate');
-                }
-            } else {
-                // Если API не поддерживается браузером, сразу включаем CSS-заплатку
-                console.log("Screen Orientation API не поддерживается");
-                video.classList.add('fallback-rotate');
-            }
-
-            // 4. Запускаем видео на полную громкость
+            // 2. Включаем звук и видео
+            video.muted = false;
             video.volume = 1.0;
-            video.play();
-            video.loop = true; // Зациклить видео
+            
+            // Пытаемся запустить видео
+            let playPromise = video.play();
+            if (playPromise !== undefined) {
+                playPromise.catch(error => {
+                    // Если браузер блокирует звук, запускаем без звука и сразу включаем его
+                    video.muted = true;
+                    video.play();
+                    video.muted = false;
+                });
+            }
+
+            // 3. Пытаемся войти в полноэкранный режим
+            const doc = document.documentElement;
+            if (doc.requestFullscreen) doc.requestFullscreen();
+            else if (doc.webkitRequestFullscreen) doc.webkitRequestFullscreen();
+
+            // 4. Пытаемся ПЕРЕВЕРНУТЬ экран программно (для Android)
+            if (screen.orientation && screen.orientation.lock) {
+                screen.orientation.lock('landscape').catch(() => {
+                    // Если не вышло — добавляем CSS класс для разворота картинки
+                    video.classList.add('force-landscape');
+                });
+            } else {
+                // Если Safari или старый браузер — просто разворачиваем видео стилями
+                video.classList.add('force-landscape');
+            }
         }
     </script>
 </body>
